@@ -1,4 +1,4 @@
-﻿# GetSPOListPerms
+﻿# GetSPODocLibPerms
 
 Enumerate all the folders and files in SPO Document Library with permissions on them.
 Only the folder or files which has unique permission scope will be extracted.
