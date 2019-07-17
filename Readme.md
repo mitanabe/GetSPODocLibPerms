@@ -1,8 +1,9 @@
 ﻿# GetSPOListPerms
 
-Enumerate all the folders and files and acquire all the permissions on them.
+Enumerate all the folders and files in SPO Document Library with permissions on them.
 Only the folder or files which has unique permission scope will be extracted.
 
+Do not use this PowerShell script to get a large files, as that might cause throttling.
 
 ## Reference
 The following URL has the original sample code.
