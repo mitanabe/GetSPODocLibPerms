@@ -119,36 +119,6 @@ function ExecuteQueryWithIncrementalRetry {
     }
   }
 
-function GetObjectRoles($obj, $url)
-{
-  $script:context.Load($obj.RoleAssignments)
-  ExecuteQueryWithIncrementalRetry -retryCount 5 
-  foreach ($ra in $obj.RoleAssignments)
-  {
-    $sb = new-object System.Text.StringBuilder
-    $cnt = $sb.Append($url)
-    $cnt = $sb.Append("`t")
-    $script:context.Load($ra.Member)
-    ExecuteQueryWithIncrementalRetry -retryCount 5 
-    $cnt = $sb.Append($ra.Member.Title)
-    $cnt = $sb.Append("`t")
-    $script:context.Load($ra.RoleDefinitionBindings)
-    ExecuteQueryWithIncrementalRetry -retryCount 5 
-    $i = 0
-
-    foreach ($rd in $ra.RoleDefinitionBindings)
-    {
-      if ($i -ne 0)
-      {
-        $cnt = $sb.Append(",")
-      }
-      $cnt = $sb.Append($rd.Name)
-      $i++
-    }
-    WriteOut -text $sb.ToString() -append $true
-  }
-}
-
 function GetSharingList($obj, $url)
 {
   if ($obj.GetType().Name -eq "ListItem")
