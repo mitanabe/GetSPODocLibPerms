@@ -136,14 +136,14 @@ function GetSharingList($obj, $url)
       {
         if ($link.IsActive -and $link.AllowsAnonymousAccess)
         {
-          $url + "`t" + $link.LinkKind + "`t" + $link.IsEditLink
+          WriteOut -text ($url + "`t" + $link.LinkKind + "`t" + $link.IsEditLink) -append $true
         }
       }
     }
 
     foreach($shareduser in $sharinglist)
     {
-      $url + "`t" + $shareduser.LoginName + "`t" + $shareduser.HasEditPermission
+      WriteOut -text ($url + "`t" + $shareduser.LoginName + "`t" + $shareduser.HasEditPermission) -append $true
     } 
   }
 }
@@ -191,5 +191,5 @@ $script:context.Load($list)
 $script:context.Load($list.RootFolder)
 ExecuteQueryWithIncrementalRetry -retryCount 5 
 
-WriteOut -text "URL`tSharedUser`tCanEdit" 
+WriteOut -text ("URL`tSharedUser`tCanEdit")
 EnumPermsInFolder -List $list -serverRelativeUrl $null
