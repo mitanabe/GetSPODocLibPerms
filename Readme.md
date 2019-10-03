@@ -52,7 +52,7 @@ https://blogs.technet.microsoft.com/sharepoint_support/2015/04/04/sharepoint-onl
 
 Enumerate all the folders/files and the shared with users list in SPO Document Library or OneDrive for Business
 
-The shared users include externals users as well. If the file is shared with anonymous access, it will additionally return AnynousView or AnonymousEdit as user. 
+The shared users include external users as well. If the file is shared with anonymous access, it will additionally return AnonymousView or AnonymousEdit as user. 
 
 NOTE) please make sure to browse to "Site Contents" - "Site usage" in the command bar to see if the "Shared with external users" report works for your requirements.
 The UI report would be much more cost effective. 
