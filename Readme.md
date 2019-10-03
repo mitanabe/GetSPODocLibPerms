@@ -1,4 +1,4 @@
-﻿#GetSPODocLibPerms
+﻿# GetSPODocLibPerms
 
 1. GetSPODocLibPerms.ps1 ... Enumerate all the folders and files  with unique permissions in SPO Document Library (or OD4B).
 2. GetSPODobLibSharedWithUsers.ps1 ... Enumerate all the folders/files and the users those files are shared with in SPO Document Library (or OD4B).
