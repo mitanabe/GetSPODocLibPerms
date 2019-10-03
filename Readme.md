@@ -1,9 +1,9 @@
-﻿# GetSPODocLibPerms
+﻿#GetSPODocLibPerms
 
-Enumerate all the folders and files in SPO Document Library with permissions on them.
-Only the folder or files which has unique permission scope will be extracted.
+1. GetSPODocLibPerms.ps1 ... Enumerate all the folders and files  with unique permissions in SPO Document Library (or OD4B).
+2. GetSPODobLibSharedWithUsers.ps1 ... Enumerate all the folders/files and the users those files are shared with in SPO Document Library (or OD4B).
 
-Do not use this PowerShell script to get permission from large number of files, as that might cause throttling.
+Do not use this PowerShell script from Document Library with large number of files, as that might cause throttling.
 
 
 ## Prerequitesite
@@ -20,7 +20,14 @@ https://www.nuget.org/packages/Microsoft.SharePointOnline.CSOM
 4. Unzip and extract those file.
 5. place them in the specified directory from the code. 
 
-## How to Run - parameters
+
+## 1. GetSPODocLibPerms.ps1
+
+Enumerate all the folders and files in SPO Document Library with permissions.
+Only the folder or files with unique permission scope will are returned.
+
+
+### How to Run - parameters
 
 -siteurl ... The target SPO site
 
@@ -32,7 +39,39 @@ https://www.nuget.org/packages/Microsoft.SharePointOnline.CSOM
 
 -outfile ... (OPTIONAL) The external file (*.tsv) to save the result.
 
+Example)
+.\GetSPODocLibPerms.ps1 -siteUrl https://tenant.shrarepoint.com/sites/docsite -listTitle Documents
 
-## Reference
+
+### Reference
 The following URL has the original sample code.
 https://blogs.technet.microsoft.com/sharepoint_support/2015/04/04/sharepoint-online-1250/
+
+
+## 2. GetSPODobLibSharedWithUsers.ps1
+
+Enumerate all the folders/files and the shared with users list in SPO Document Library or OneDrive for Business
+
+The shared users include externals users as well. If the file is shared with anonymous access, it will additionally return AnynousView or AnonymousEdit as user. 
+
+NOTE) please make sure to browse to "Site Contents" - "Site usage" in the command bar to see if the "Shared with external users" report works for your requirements.
+The UI report would be much more cost effective. 
+Please remember that retrieving all the file list and shared with users list could be heavily...
+
+
+### How to Run - parameters
+
+-siteurl ... The target SPO or OD4B site.
+
+-listTitle ... Document Library Title to get the permission list. 
+
+-username ... (OPTIONAL) The target user to upload the file.
+
+-password ... (OPTIONAL) The password of the above user.
+
+-outfile ... (OPTIONAL) The external file (*.tsv) to save the result.
+
+Example)
+.\GetSPODocLibPerms.ps1 -siteUrl https://tenant-my.shrarepoint.com/personal/user_tenant_onmicrosoft_com -listTitle Documents
+
+
