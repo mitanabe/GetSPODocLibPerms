@@ -1,4 +1,4 @@
-﻿<#
+<#
  This Sample Code is provided for the purpose of illustration only and is not intended to be used in a production environment. 
  THIS SAMPLE CODE AND ANY RELATED INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, 
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.  
@@ -19,9 +19,13 @@ param(
   [Parameter(Mandatory=$true)]
   [string]$listName,
   [Parameter(Mandatory=$false)]
+  $startPath,
+  [Parameter(Mandatory=$false)]
   $username,
   [Parameter(Mandatory=$false)]
   $password,
+  [Parameter(Mandatory=$false)]
+  $ShowAllItems=$false,
   [Parameter(Mandatory=$false)]
   $outfile
 )
@@ -151,33 +155,53 @@ function GetObjectRoles($obj, $url)
 {
   $script:context.Load($obj.RoleAssignments)
   ExecuteQueryWithIncrementalRetry -retryCount 5 
+  $aclList = New-Object System.Collections.ArrayList
+
   foreach ($ra in $obj.RoleAssignments)
   {
-    $sb = new-object System.Text.StringBuilder
-    $cnt = $sb.Append($url)
-    $cnt = $sb.Append("`t")
+    $ace = New-Object PSObject
     $script:context.Load($ra.Member)
     ExecuteQueryWithIncrementalRetry -retryCount 5 
-    $cnt = $sb.Append($ra.Member.Title)
-    $cnt = $sb.Append("`t")
+
+    $cnt = Add-Member -InputObject $ace -MemberType NoteProperty -Name UserName -Value $ra.Member.Title
+
     $script:context.Load($ra.RoleDefinitionBindings)
     ExecuteQueryWithIncrementalRetry -retryCount 5 
-    $i = 0
 
+    $i = 0
+    $defs = New-Object System.Text.StringBuilder
     foreach ($rd in $ra.RoleDefinitionBindings)
     {
       if ($i -ne 0)
       {
-        $cnt = $sb.Append(",")
+        $cnt = $defs.Append(",")
       }
-      $cnt = $sb.Append($rd.Name)
+      $cnt = $defs.Append($rd.Name)
       $i++
     }
+    $cnt = Add-Member -InputObject $ace -MemberType NoteProperty -Name RoleDefinitions -Value $defs.ToString()
+    $cnt = $aclList.Add($ace)
+  }
+  return $aclList
+}
+
+function PrintObjectRoles($aclList, $url)
+{
+  foreach ($ace in $aclList)
+  {
+    $sb = new-object System.Text.StringBuilder
+    $cnt = $sb.Append($url)
+    $cnt = $sb.Append("`t")
+
+    $cnt = $sb.Append($ace.UserName)
+    $cnt = $sb.Append("`t")
+    $cnt = $sb.Append($ace.RoleDefinitions)
     WriteOut -text $sb.ToString() -append $true
   }
 }
 
-function EnumPermsInFolder($list, $ServerRelativeUrl)
+
+function EnumPermsInFolder($list, $ServerRelativeUrl, $parentAcL)
 {
   do
   {
@@ -201,21 +225,40 @@ function EnumPermsInFolder($list, $ServerRelativeUrl)
       if ($listItem.FileSystemObjectType -eq [Microsoft.SharePoint.Client.FileSystemObjectType]::Folder)
       {
         $script:context.Load($listItem.Folder)
-         ExecuteQueryWithIncrementalRetry -retryCount 5 
-         if ($listItem.HasUniqueRoleAssignments)
-         {
-           GetObjectRoles -obj $listItem -url $listItem.Folder.ServerRelativeUrl
-         }
-         EnumPermsInFolder -List $list -ServerRelativeUrl $listItem.Folder.ServerRelativeUrl
+        ExecuteQueryWithIncrementalRetry -retryCount 5 
+        if ($listItem.HasUniqueRoleAssignments)
+        {
+          $aclList = GetObjectRoles -obj $listItem -url $listItem.Folder.ServerRelativeUrl
+          PrintObjectRoles -aclList $aclList -url $listItem.Folder.ServerRelativeUrl
+          EnumPermsInFolder -List $list -ServerRelativeUrl $listItem.Folder.ServerRelativeUrl -parentACL $aclList
+        }
+        else
+        {
+          if ($ShowAllItems)
+          {
+            PrintObjectRoles -aclList $parentACL -url $listItem.Folder.ServerRelativeUrl
+          }
+          EnumPermsInFolder -List $list -ServerRelativeUrl $listItem.Folder.ServerRelativeUrl -parentACL $parentAcl
+        }
       }
       else {
         if ($listItem.HasUniqueRoleAssignments)
         {
           $script:context.Load($listItem.File)
           ExecuteQueryWithIncrementalRetry -retryCount 5 
-          GetObjectRoles -obj $listItem -url $listItem.File.ServerRelativeUrl
+          $aclList = GetObjectRoles -obj $listItem -url $listItem.File.ServerRelativeUrl
+          PrintObjectRoles -aclList $aclList -url $listItem.File.ServerRelativeUrl
         }
-     }
+        else
+        {
+          if ($ShowAllItems)
+          {
+            $script:context.Load($listItem.File)
+            ExecuteQueryWithIncrementalRetry -retryCount 5 
+            PrintObjectRoles -aclList $parentACL -url $listItem.File.ServerRelativeUrl
+          }
+        }
+      }
     } 
     $position = $listItems.ListItemCollectionPosition
   }
@@ -229,5 +272,11 @@ $script:context.Load($list.RootFolder)
 ExecuteQueryWithIncrementalRetry -retryCount 5 
 
 WriteOut -text "Scope`tRoleAssignment`tRoleDefinition" 
-GetObjectRoles -obj $list -url $list.RootFolder.ServerRelativeUrl
-EnumPermsInFolder -List $list -serverRelativeUrl $null
+if ($startPath -eq $null)
+{
+  $startPath = $list.RootFolder.ServerRelativeUrl
+}
+$aclList = GetObjectRoles -obj $list -url $startPath
+PrintObjectRoles -aclList $aclList -url $startPath
+EnumPermsInFolder -List $list -serverRelativeUrl $startPath -parentACL $aclList
+

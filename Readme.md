@@ -39,6 +39,10 @@ Only the folder or files with unique permission scope will are returned.
 
 -outfile ... (OPTIONAL) The external file (*.tsv) to save the result.
 
+-startPath ... (OPTIONAL) The start/root folder path to get the permissions underneath.
+
+-ShowAllItems ... (OPTIONAL) Show all permissions. Non-Unique permissions will be exported from cache of the parent role assignments. Default : $false
+
 Example)
 .\GetSPODocLibPerms.ps1 -siteUrl https://tenant.shrarepoint.com/sites/docsite -listTitle Documents
 
