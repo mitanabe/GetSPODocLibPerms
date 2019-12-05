@@ -27,11 +27,15 @@ param(
   [Parameter(Mandatory=$false)]
   $ShowAllItems=$false,
   [Parameter(Mandatory=$false)]
+  $UseREST=$false,
+  [Parameter(Mandatory=$false)]
   $outfile
 )
 
 Add-Type -Path "C:\Program Files\Common Files\microsoft shared\Web Server Extensions\16\ISAPI\Microsoft.SharePoint.Client.dll"
 Add-Type -Path "C:\Program Files\Common Files\microsoft shared\Web Server Extensions\16\ISAPI\Microsoft.SharePoint.Client.Runtime.dll"
+
+$UserAgentString = "NONISV|Contoso|Application/1.0"
 
 $script:context = new-object Microsoft.SharePoint.Client.ClientContext($siteUrl)
 $pwd = $null
@@ -48,10 +52,24 @@ else
 $credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($username, $pwd)
 $script:context.Credentials = $credentials
 
+$cookie = $null
+if ($UseREST)
+{
+  $rootUrl = ("https://" + (New-Object system.uri($siteUrl)).Host);
+  $cookie = $context.Credentials.GetAuthenticationCookie($rootUrl, $true);
+  $script:UseREST = $true
+  $script:restsession = New-Object Microsoft.PowerShell.Commands.WebRequestSession;
+  $script:restsession.Cookies.SetCookies($rootUrl, $cookie);
+  $script:restheaders = @{
+    "UserAgent" = $UserAgentString
+  }
+
+}
+
 $script:context.add_ExecutingWebRequest({
   param ($source, $eventArgs);
   $request = $eventArgs.WebRequestExecutor.WebRequest;
-  $request.UserAgent = "NONISV|Contoso|Application/1.0";
+  $request.UserAgent = $UserAgentString;
 })
 
 function ExecuteQueryWithIncrementalRetry {
@@ -185,6 +203,57 @@ function GetObjectRoles($obj, $url)
   return $aclList
 }
 
+function GetObjectRolesWithREST
+{
+  param(
+    [parameter(Mandatory=$true)]
+    [ValidateSet("List","Folder","File")]
+    $objtype, 
+    $url
+  )
+
+  switch ($objtype)
+  {
+    "List" {
+      $restEndPoint = $siteUrl.TrimEnd("/") + "/_api/web/getlist(@path)/roleassignments?`$expand=Member,RoleDefinitionBindings&@path='" + $url + "'"
+      break;
+    }
+    "Folder" {
+      $restEndPoint = $siteUrl.TrimEnd("/") + "/_api/web/getfolderbyserverrelativeurl(@path)/listitemallfields/roleassignments?`$expand=Member,RoleDefinitionBindings&@path='" + $url + "'"
+      break;
+    }
+    "File" {
+      $restEndPoint = $siteUrl.TrimEnd("/") + "/_api/web/getfilebyserverrelativeurl(@path)/listitemallfields/roleassignments?`$expand=Member,RoleDefinitionBindings&@path='" + $url + "'"
+      break;
+    }
+  }
+
+  $restresult = Invoke-RestMethod -Method Get -Uri $restEndPoint -Headers $script:restheaders -WebSession $script:restsession;
+  $aclList = New-Object System.Collections.ArrayList
+
+  foreach ($entry in $restresult)
+  {
+    $ace = New-Object PSObject
+    $cnt = Add-Member -InputObject $ace -MemberType NoteProperty -Name UserName -Value $entry.link[1].inline.entry.content.properties.Title
+
+    $i = 0
+    $defs = New-Object System.Text.StringBuilder
+    foreach ($rd in $entry.link[2].inline.feed.entry.content.properties.Name)
+    {
+      if ($i -ne 0)
+      {
+        $cnt = $defs.Append(",")
+      }
+      $cnt = $defs.Append($rd)
+      $i++
+    }
+    $cnt = Add-Member -InputObject $ace -MemberType NoteProperty -Name RoleDefinitions -Value $defs.ToString()
+    $cnt = $aclList.Add($ace)
+  }
+  return $aclList
+}
+
+
 function PrintObjectRoles($aclList, $url)
 {
   foreach ($ace in $aclList)
@@ -228,7 +297,13 @@ function EnumPermsInFolder($list, $ServerRelativeUrl, $parentAcL)
         ExecuteQueryWithIncrementalRetry -retryCount 5 
         if ($listItem.HasUniqueRoleAssignments)
         {
-          $aclList = GetObjectRoles -obj $listItem -url $listItem.Folder.ServerRelativeUrl
+          if ($UseREST)
+          {
+            $aclList = GetObjectRolesWithREST -objtype "Folder" -url $listItem.Folder.ServerRelativeUrl
+          }
+          else {
+            $aclList = GetObjectRoles -obj $listItem -url $listItem.Folder.ServerRelativeUrl
+          }
           PrintObjectRoles -aclList $aclList -url $listItem.Folder.ServerRelativeUrl
           EnumPermsInFolder -List $list -ServerRelativeUrl $listItem.Folder.ServerRelativeUrl -parentACL $aclList
         }
@@ -246,7 +321,13 @@ function EnumPermsInFolder($list, $ServerRelativeUrl, $parentAcL)
         {
           $script:context.Load($listItem.File)
           ExecuteQueryWithIncrementalRetry -retryCount 5 
-          $aclList = GetObjectRoles -obj $listItem -url $listItem.File.ServerRelativeUrl
+          if ($useREST)
+          {
+            $aclList = GetObjectRolesWithREST -objtype "File" -url $listItem.File.ServerRelativeUrl
+          }
+          else {
+            $aclList = GetObjectRoles -obj $listItem -url $listItem.File.ServerRelativeUrl
+          }
           PrintObjectRoles -aclList $aclList -url $listItem.File.ServerRelativeUrl
         }
         else
@@ -276,7 +357,14 @@ if ($startPath -eq $null)
 {
   $startPath = $list.RootFolder.ServerRelativeUrl
 }
-$aclList = GetObjectRoles -obj $list -url $startPath
+
+if ($UseREST)
+{
+  $aclList = GetObjectRolesWithREST -objtype "List" -url $startPath
+}
+else {
+  $aclList = GetObjectRoles -obj $list -url $startPath
+}
 PrintObjectRoles -aclList $aclList -url $startPath
 EnumPermsInFolder -List $list -serverRelativeUrl $startPath -parentACL $aclList
 

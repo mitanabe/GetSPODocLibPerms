@@ -41,6 +41,8 @@ Only the folder or files with unique permission scope will are returned.
 
 -startPath ... (OPTIONAL) The start/root folder path to get the permissions underneath.
 
+-UseREST ... (OPTIONAL) $true for Speed Oriented option (BETA). Might not be stable.
+
 -ShowAllItems ... (OPTIONAL) Show all permissions. Non-Unique permissions will be exported from cache of the parent role assignments. Default : $false
 
 Example)
