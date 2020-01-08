@@ -31,7 +31,7 @@ Only the folder or files with unique permission scope will are returned.
 
 -siteurl ... The target SPO site
 
--listTitle ... Document Library Title to get the permission list. 
+-listName ... Document Library Title to get the permission list. 
 
 -username ... (OPTIONAL) The target user to upload the file.
 
@@ -46,7 +46,7 @@ Only the folder or files with unique permission scope will are returned.
 -ShowAllItems ... (OPTIONAL) Show all permissions. Non-Unique permissions will be exported from cache of the parent role assignments. Default : $false
 
 Example)
-.\GetSPODocLibPerms.ps1 -siteUrl https://tenant.shrarepoint.com/sites/docsite -listTitle Documents
+.\GetSPODocLibPerms.ps1 -siteUrl https://tenant.shrarepoint.com/sites/docsite -listName Documents
 
 
 ### Reference
@@ -69,7 +69,7 @@ Please remember that retrieving all the file list and shared with users list cou
 
 -siteurl ... The target SPO or OD4B site.
 
--listTitle ... Document Library Title to get the permission list. 
+-listName ... Document Library Title to get the permission list. 
 
 -username ... (OPTIONAL) The target user to upload the file.
 
@@ -78,6 +78,6 @@ Please remember that retrieving all the file list and shared with users list cou
 -outfile ... (OPTIONAL) The external file (*.tsv) to save the result.
 
 Example)
-.\GetSPODocLibPerms.ps1 -siteUrl https://tenant-my.shrarepoint.com/personal/user_tenant_onmicrosoft_com -listTitle Documents
+.\GetSPODocLibPerms.ps1 -siteUrl https://tenant-my.shrarepoint.com/personal/user_tenant_onmicrosoft_com -listName Documents
 
 
